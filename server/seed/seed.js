@@ -35,14 +35,12 @@ const seed = async () => {
   await clearDB();
 
   // ─── USERS ───────────────────────────────────────────────
-  const salt = await bcrypt.genSalt(10);
-
   const admin = await User.create({
     firstName: 'Admin',
     lastName: 'Testora',
     email: 'admin@testora.com',
     mobile: '9000000001',
-    passwordHash: await bcrypt.hash('Admin@123', salt),
+    passwordHash: 'Admin@123',
     role: 'admin',
     isActive: true,
   });
@@ -52,7 +50,7 @@ const seed = async () => {
     lastName: 'Sharma',
     email: 'teacher@testora.com',
     mobile: '9000000002',
-    passwordHash: await bcrypt.hash('Teacher@123', salt),
+    passwordHash: 'Teacher@123',
     role: 'teacher',
     isActive: true,
   });
@@ -63,7 +61,7 @@ const seed = async () => {
       lastName: 'Verma',
       email: 'rahul@testora.com',
       mobile: '9111111111',
-      passwordHash: await bcrypt.hash('Student@123', salt),
+      passwordHash: 'Student@123',
       role: 'student',
       college: 'MIT College of Engineering',
       course: 'B.Tech CSE',
@@ -75,7 +73,7 @@ const seed = async () => {
       lastName: 'Patil',
       email: 'sneha@testora.com',
       mobile: '9222222222',
-      passwordHash: await bcrypt.hash('Student@123', salt),
+      passwordHash: 'Student@123',
       role: 'student',
       college: 'VJTI Mumbai',
       course: 'B.Tech IT',
@@ -87,7 +85,7 @@ const seed = async () => {
       lastName: 'Mehta',
       email: 'arjun@testora.com',
       mobile: '9333333333',
-      passwordHash: await bcrypt.hash('Student@123', salt),
+      passwordHash: 'Student@123',
       role: 'student',
       college: 'COEP Pune',
       course: 'B.E. CS',
@@ -99,7 +97,7 @@ const seed = async () => {
       lastName: 'Krishnan',
       email: 'divya@testora.com',
       mobile: '9444444444',
-      passwordHash: await bcrypt.hash('Student@123', salt),
+      passwordHash: 'Student@123',
       role: 'student',
       college: 'NIT Nagpur',
       course: 'B.Tech CSE',

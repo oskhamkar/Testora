@@ -20,8 +20,15 @@ const userSchema = new mongoose.Schema(
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('passwordHash')) return next();
+
+  const passwordValue = this.passwordHash;
+
+  if (typeof passwordValue === 'string' && passwordValue.startsWith('$2')) {
+    return next();
+  }
+
   const salt = await bcrypt.genSalt(10);
-  this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
+  this.passwordHash = await bcrypt.hash(passwordValue, salt);
   next();
 });
 
