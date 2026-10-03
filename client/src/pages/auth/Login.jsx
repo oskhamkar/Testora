@@ -129,7 +129,7 @@ const Login = () => {
           </div>
 
           {/* Demo credentials */}
-          <div className="mt-4 card bg-slate-900/50">
+          {/* <div className="mt-4 card bg-slate-900/50">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Quick Demo Login</p>
             <div className="space-y-2">
               {demoLogins.map(({ label, email, password, color }) => (
@@ -144,7 +144,7 @@ const Login = () => {
                 </button>
               ))}
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
