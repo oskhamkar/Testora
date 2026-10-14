@@ -70,11 +70,12 @@ function App() {
                     <Route path="topics" element={<Topics />} />
                     <Route path="topics/:id" element={<TopicDetail />} />
                     <Route path="practice" element={<Practice />} />
+                    <Route path="practice/:topicId" element={<Practice />} />
                     <Route path="mock-tests" element={<MockTests />} />
                     <Route path="mock-tests/:id" element={<MockTestExam />} />
                     <Route path="quizzes" element={<MyQuizzes />} />
                     <Route path="quizzes/:id" element={<QuizExam />} />
-                    <Route path="results/:resultId" element={<ResultPage />} />
+                    <Route path="result/:id" element={<ResultPage />} />
                     <Route path="performance" element={<Performance />} />
                     <Route path="history" element={<TestHistory />} />
                     <Route path="profile" element={<StudentProfile />} />
