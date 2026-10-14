@@ -55,13 +55,15 @@ const seed = async () => {
     isActive: true,
   });
 
+  const studentPasswordHash = await bcrypt.hash('Student@123', 10);
+
   const students = await User.insertMany([
     {
       firstName: 'Rahul',
       lastName: 'Verma',
       email: 'rahul@testora.com',
       mobile: '9111111111',
-      passwordHash: 'Student@123',
+      passwordHash: studentPasswordHash,
       role: 'student',
       college: 'MIT College of Engineering',
       course: 'B.Tech CSE',
@@ -73,7 +75,7 @@ const seed = async () => {
       lastName: 'Patil',
       email: 'sneha@testora.com',
       mobile: '9222222222',
-      passwordHash: 'Student@123',
+      passwordHash: studentPasswordHash,
       role: 'student',
       college: 'VJTI Mumbai',
       course: 'B.Tech IT',
@@ -85,7 +87,7 @@ const seed = async () => {
       lastName: 'Mehta',
       email: 'arjun@testora.com',
       mobile: '9333333333',
-      passwordHash: 'Student@123',
+      passwordHash: studentPasswordHash,
       role: 'student',
       college: 'COEP Pune',
       course: 'B.E. CS',
@@ -97,7 +99,7 @@ const seed = async () => {
       lastName: 'Krishnan',
       email: 'divya@testora.com',
       mobile: '9444444444',
-      passwordHash: 'Student@123',
+      passwordHash: studentPasswordHash,
       role: 'student',
       college: 'NIT Nagpur',
       course: 'B.Tech CSE',
