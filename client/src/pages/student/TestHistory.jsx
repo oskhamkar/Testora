@@ -78,7 +78,7 @@ const TestHistory = () => {
                         {a.testType === 'mockTest' ? 'Mock Test' : 'Quiz'}
                       </span>
                     </td>
-                    <td className="font-semibold">{a.score}/{a.totalQuestions}</td>
+                    <td className="font-semibold">{a.score}/{a.maxMarks > 0 ? a.maxMarks : a.totalQuestions}</td>
                     <td>
                       <span className={`font-bold ${a.accuracy >= 80 ? 'text-emerald-400' : a.accuracy >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
                         {a.accuracy}%

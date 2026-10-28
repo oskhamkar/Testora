@@ -50,6 +50,7 @@ const TeacherQuizzes = () => {
               <tr>
                 <th>Quiz Title</th>
                 <th>Questions</th>
+                <th>Marks</th>
                 <th>Duration</th>
                 <th>Status</th>
                 <th>Date Range</th>
@@ -61,6 +62,10 @@ const TeacherQuizzes = () => {
                 <tr key={q._id}>
                   <td className="font-medium text-slate-200">{q.title}</td>
                   <td>{q.questionIds?.length || 0}</td>
+                  <td>
+                    {(q.questionIds?.length || 0) * (q.marksPerQuestion || 1)}
+                    {q.negativeMarksPerQuestion > 0 ? ` (-${q.negativeMarksPerQuestion})` : ''}
+                  </td>
                   <td>{q.durationMinutes} min</td>
                   <td><span className={q.status === 'published' ? 'badge-success' : 'badge-secondary'}>{q.status}</span></td>
                   <td className="text-xs text-slate-500">

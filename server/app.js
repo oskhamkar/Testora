@@ -3,10 +3,15 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
+
+// Multer writes CSV/JSON import uploads here; the folder is gitignored
+// (runtime data), so it must be created on startup rather than assumed to exist.
+fs.mkdirSync(path.join(__dirname, 'uploads'), { recursive: true });
 
 // Route imports
 const authRoutes = require('./routes/authRoutes');

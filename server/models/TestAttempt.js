@@ -33,6 +33,7 @@ const testAttemptSchema = new mongoose.Schema(
     testTitle: { type: String },
     answers: [answerSchema],
     score: { type: Number, default: 0 },
+    maxMarks: { type: Number, default: 0 },
     totalQuestions: { type: Number, required: true },
     correctAnswers: { type: Number, default: 0 },
     wrongAnswers: { type: Number, default: 0 },

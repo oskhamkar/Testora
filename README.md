@@ -18,18 +18,19 @@ Testora is a full-stack academic project built for college students, faculty, an
 
 ### 👩‍🏫 **Teacher Portal**
 - **Faculty Dashboard**: Class performance metrics, total student submissions, and active quiz tracking.
-- **Quiz Management**: Create, publish, unpublish, and delete custom quizzes.
-- **Flexible Quiz Creator**: Build quizzes manually or auto-import questions from the shared question bank.
-- **Class Results & Analytics**: View individual student scores, pass/fail status, submission timestamps, and overall class statistics.
-- **Question Bank Browser**: Search and filter questions by category, topic, and difficulty.
+- **Quiz Management**: Create, publish, and delete custom quizzes.
+- **Guided Quiz Creator**: Category → Quiz Details → Set Questions workflow. The teacher sets a question count, marks per question, and optional negative marking, then fills in that many question forms (text, 4 options, correct answer, optional explanation) — each one is saved as a new question in the bank. The quiz is automatically assigned to all active students; there is no manual student-selection step.
+- **Class Results & Analytics**: View individual student scores (marks obtained / max marks), accuracy, submission timestamps, and overall class statistics.
 
 ### 🛡️ **Admin Portal**
-- **System Overview**: High-level metrics for total students, teachers, categories, topics, questions, and mock tests.
-- **User Management**: Activate/deactivate student and faculty accounts; create and manage teacher credentials.
-- **Category & Topic Management**: Full CRUD controls for subjects (Quantitative Aptitude, Logical Reasoning, Verbal Ability) and sub-topics.
-- **Concept Editor**: Add and edit rich study cards with formulas, sample problems, and key rules.
-- **Global Question Bank**: Add, edit, and delete questions with option management, difficulty tags, positive/negative marks, explanations, and **bulk CSV import**.
-- **Mock Test Builder**: Create full-length mock tests with duration, total marks, passing marks, and question picker.
+- **System Overview**: Total Students, Total Teachers, Total Topics, and Total Questions (in that order), plus mock test and attempt counts — all computed live from the database.
+- **User Management**: Activate/deactivate student and faculty accounts; create and manage teacher credentials, including specialization.
+- **Category & Topic Management**: Full CRUD controls for subjects and sub-topics, created by the admin and immediately available in teacher quiz creation.
+- **Concept Editor**: Add and edit rich study cards with formulas, sample problems, and key rules (separate from the question bank — these are "learn" content, not test questions).
+- **Global Question Bank**: Add, edit, and deactivate questions with category/topic selection and full-text search, plus:
+  - **CSV import** (documented column format) and **CSV export** (full or filtered by category/topic/search).
+  - **JSON import** (documented format, either pasted or as an uploaded `.json` file up to 2MB / 500 questions) — validates every question's fields, options, correct answer, and category/topic references; a batch with any invalid or duplicate question is rejected in full (no partial imports).
+- **Mock Test Builder**: Create full-length mock tests with duration, marks per question, optional negative marking, and a question picker.
 
 ---
 
@@ -56,7 +57,7 @@ Testora(Mini project)/
 │   │   │   ├── admin/         # AdminDashboard, AdminStudents, AdminTeachers, etc.
 │   │   │   ├── auth/          # Login, Register
 │   │   │   ├── student/       # StudentDashboard, Practice, MockTestExam, Performance, etc.
-│   │   │   └── teacher/       # TeacherDashboard, CreateQuiz, QuizResults, etc.
+│   │   │   └── teacher/       # TeacherDashboard, CreateQuiz, QuizResults
 │   │   ├── routes/            # ProtectedRoute role guards
 │   │   ├── services/          # Axios API client configured with Interceptors
 │   │   ├── App.jsx            # Main Router setup
@@ -69,10 +70,10 @@ Testora(Mini project)/
 │   ├── config/                # Database connection (db.js)
 │   ├── controllers/           # REST API controllers
 │   ├── middleware/            # Auth JWT, Role authorization, Error Handler
-│   ├── models/                # Mongoose Models (User, Category, Topic, Concept, Question, MockTest, Quiz, Result)
+│   ├── models/                # Mongoose Models (User, Category, Topic, Concept, Question, MockTest, TeacherQuiz, QuizAssignment, TestAttempt)
 │   ├── routes/                # Express API endpoint definitions
 │   ├── seed/                  # Seeder script (seed.js) with demo data
-│   ├── uploads/               # CSV upload storage
+│   ├── uploads/               # CSV/JSON import storage (gitignored; created automatically on server startup)
 │   ├── .env                   # Environment configuration
 │   ├── app.js                 # Express app initialization
 │   └── package.json
@@ -85,33 +86,39 @@ Testora(Mini project)/
 
 ### Prerequisites
 - Node.js (v18 or higher)
-- MongoDB Server running locally on port `27017` or MongoDB Atlas URI.
+- MongoDB Server running locally on port `27017`, or a MongoDB Atlas URI.
+
+### Environment variables (`server/.env`)
+Copy `server/.env.example` to `server/.env` and fill in real values — never commit `.env` itself (it's gitignored). Required variables:
+
+| Variable | Purpose |
+| :--- | :--- |
+| `PORT` | Port the Express server listens on (default `5000`) |
+| `MONGODB_URI` | MongoDB connection string (local or Atlas) |
+| `JWT_SECRET` | Secret used to sign/verify JWTs — use a long random value, never reuse across environments |
+| `JWT_EXPIRE` | Token lifetime, e.g. `7d` |
+| `CLIENT_URL` | Frontend origin allowed by CORS, e.g. `http://localhost:5173` |
+| `NODE_ENV` | `development` or `production` |
 
 ### 1. Backend Setup (`server`)
 ```bash
-# Navigate to server directory
 cd server
-
-# Verify dependencies are installed
 npm install
 
-# (Optional) Seed database with demo accounts, topics, questions & mock tests
+# (Optional) Seed database with demo accounts, categories, topics, questions & mock tests
+# WARNING: this clears all existing data in the target database first.
 npm run seed
 
-# Start backend server
 npm run dev
-# Server will run on http://localhost:5000
+# Server will run on http://localhost:5000 (or PORT from .env)
 ```
+On startup the server creates `server/uploads/` automatically if it doesn't exist — this is where CSV/JSON import files are temporarily written before being parsed and deleted.
 
 ### 2. Frontend Setup (`client`)
 ```bash
-# Navigate to client directory
 cd client
+npm install
 
-# Install dependencies if not already done
-node --max-old-space-size=4096 "C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js" install
-
-# Start Vite development server
 npm run dev
 # Client will run on http://localhost:5173
 ```
@@ -151,12 +158,41 @@ Run `npm run seed` inside the `server/` directory to generate these ready-to-use
 - `GET /api/performance` — Fetch performance analytics & weak topics
 
 ### Teacher & Admin Endpoints
-- `GET /api/admin/stats` — System dashboard counters & stats
-- `GET/PUT /api/admin/students` — View & toggle student status
-- `POST/PUT /api/admin/teachers` — Create & manage teacher credentials
-- `POST /api/questions` & `POST /api/questions/import` — Add single question or import CSV batch
-- `POST /api/quizzes` — Create new teacher quiz
-- `GET /api/quizzes/:id/results` — Fetch student scores for a specific quiz
+- `GET /api/admin/dashboard` — Dashboard counters (students, teachers, topics, questions, mock tests, attempts)
+- `GET /api/admin/students` & `PUT /api/admin/students/:id/toggle` — View & activate/deactivate students
+- `GET/POST/PUT /api/admin/teachers` & `PUT /api/admin/teachers/:id/toggle` — Create, edit, activate/deactivate teachers (incl. specialization)
+- `GET /api/questions`, `POST /api/questions`, `PUT/DELETE /api/questions/:id` — Question CRUD (admin/teacher only — never exposed to students directly)
+- `POST /api/questions/import` — CSV import (partial imports allowed, row-level errors reported)
+- `POST /api/questions/import-json` — JSON import, pasted body or uploaded `.json` file (max 2MB / 500 questions); all-or-nothing, with duplicate detection
+- `GET /api/questions/export` — CSV export, full or filtered by `categoryId`/`topicId`/`search`
+- `POST /api/quizzes` — Create a quiz with inline question creation (category, details, dynamically generated questions)
+- `POST /api/quizzes/:id/assign` — Assign a quiz to all active students (`assignAll: true`)
+- `GET /api/quizzes/:id/results` — Fetch student scores (marks obtained / max marks) for a specific quiz
+- `POST/PUT/DELETE /api/mock-tests` — Mock test CRUD, including `marksPerQuestion`/`negativeMarksPerQuestion`
+
+---
+
+## 🔄 Recent Changes
+
+- Teacher quiz creation reworked into **Category → Quiz Details → Set Questions**: question count drives dynamically generated question forms (no more picking from the existing bank), with marks-per-question and optional negative marking, and automatic assignment to all active students.
+- Added `specialization` to the User model and surfaced it in teacher management and the teacher profile page (this replaced a `department` field that was referenced in the UI but never existed on the schema — it silently did nothing before).
+- `AdminQuestions` and `AdminMockTests` admin pages were rebuilt — they previously used field names (`questionText`, `category`, `correctOption`, `difficulty`, `totalMarks`, …) that didn't match the real `Question`/`MockTest` schemas and were non-functional.
+- Added documented JSON question import (paste or `.json` file upload, all-or-nothing validation, duplicate detection) and CSV export (full or filtered).
+- **Scoring now accounts for marks per question and negative marking** on both quizzes and mock tests (`TestAttempt.score` is the weighted marks obtained, `TestAttempt.maxMarks` is the total possible marks) — previously `score` was just a raw count of correct answers, so negative marking had no effect even when configured.
+- **Security fix**: `GET /api/questions` and `GET /api/questions/:id` were reachable by any authenticated role, including students, and returned `correctAnswer`/`explanation` in full. They are now restricted to admin/teacher. The one legitimate student-facing caller (`TopicDetail`, which only needed a question *count*) was switched to use the count already returned by `GET /api/topics/:id` — this also fixed a pre-existing bug where that page read the wrong field and rendered a blank topic name/category.
+- Removed the standalone teacher "Question Bank" browser page/route/nav entry — it only existed to support picking questions into a quiz, which the new quiz-creation flow no longer does. The admin question bank (with CSV/JSON import, export, full CRUD) is unaffected.
+- Backend validation (`express-validator`) added across auth, quiz, question, category, topic, teacher, and mock-test routes, including a max of 50 questions per quiz and 100 per mock test.
+- Native `window.confirm()` calls replaced with a shared `ConfirmDialog` component across admin/teacher pages.
+- Fixed a deployment gap where `server/uploads/` (used by CSV/JSON import) didn't exist on a fresh checkout, since it's gitignored — the server now creates it on startup.
+
+## ⚠️ Known Limitations
+
+- **No automated test suite or lint config** exists in this repo. Verification for this round of changes was done with live API calls against a running server and `vite build` for the frontend, not an automated test run.
+- **PDF export was explicitly descoped** in favor of CSV export only (by product decision, not a technical blocker).
+- **No teacher hard-delete**: only soft-deactivate exists for teacher accounts, by design, so historical quizzes/questions (`createdBy` references) are always preserved.
+- **Admin Edit/Deactivate actions on the Teacher table were kept as-is** — whether either should be removed was raised but left unresolved; no functional change was made there beyond adding the specialization field.
+- **Responsive layout and confirmation dialogs were verified by code review and a production build, not by manual testing in a real browser** (no browser available in this environment) — the existing Tailwind responsive patterns were followed consistently, but visual QA on actual devices is still recommended.
+- A small number of completed `TestAttempt` records from this round's live functional testing remain in the database (titled "Functional Scoring Quiz" / "Functional Scoring Test"); there is no delete endpoint for attempts (by design, to preserve history), so they were left in place rather than removed via direct database access.
 
 ---
 

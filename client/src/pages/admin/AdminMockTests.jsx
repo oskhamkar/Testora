@@ -14,6 +14,9 @@ const emptyMockTest = {
   description: '',
   categoryId: '',
   durationMinutes: 30,
+  marksPerQuestion: 1,
+  negativeMarkingEnabled: false,
+  negativeMarksPerQuestion: 0.25,
   questionIds: [],
 };
 
@@ -67,6 +70,9 @@ const AdminMockTests = () => {
       description: mt.description || '',
       categoryId: firstQuestion?.categoryId?._id || firstQuestion?.categoryId || '',
       durationMinutes: mt.durationMinutes || 30,
+      marksPerQuestion: mt.marksPerQuestion || 1,
+      negativeMarkingEnabled: !!mt.negativeMarksPerQuestion,
+      negativeMarksPerQuestion: mt.negativeMarksPerQuestion || 0.25,
       questionIds: mt.questionIds?.map(q => typeof q === 'object' ? q._id : q) || [],
     });
     setQuestionSearch('');
@@ -87,11 +93,15 @@ const AdminMockTests = () => {
     if (!form.title.trim()) return toast.error('Title is required');
     if (form.questionIds.length === 0) return toast.error('Select at least 1 question');
 
+    if (Number(form.marksPerQuestion) <= 0) return toast.error('Marks per question must be greater than 0');
+
     const payload = {
       title: form.title,
       description: form.description,
       questionIds: form.questionIds,
       durationMinutes: Number(form.durationMinutes),
+      marksPerQuestion: Number(form.marksPerQuestion),
+      negativeMarksPerQuestion: form.negativeMarkingEnabled ? Number(form.negativeMarksPerQuestion) : 0,
     };
 
     try {
@@ -197,7 +207,7 @@ const AdminMockTests = () => {
                 <p className="text-xs text-slate-400 line-clamp-2">{test.description || 'No description provided.'}</p>
               </div>
 
-              <div className="pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-center text-xs">
+              <div className="pt-4 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="bg-slate-800/40 p-2 rounded-xl border border-slate-800">
                   <span className="text-slate-400 block">Questions</span>
                   <span className="text-white font-bold text-sm">{test.questionIds?.length || 0}</span>
@@ -205,6 +215,13 @@ const AdminMockTests = () => {
                 <div className="bg-slate-800/40 p-2 rounded-xl border border-slate-800">
                   <span className="text-slate-400 block">Duration</span>
                   <span className="text-white font-bold text-sm">{test.durationMinutes}m</span>
+                </div>
+                <div className="bg-slate-800/40 p-2 rounded-xl border border-slate-800">
+                  <span className="text-slate-400 block">Marks</span>
+                  <span className="text-white font-bold text-sm">
+                    {((test.questionIds?.length || 0) * (test.marksPerQuestion || 1))}
+                    {test.negativeMarksPerQuestion > 0 ? ` (-${test.negativeMarksPerQuestion})` : ''}
+                  </span>
                 </div>
               </div>
             </div>
@@ -270,6 +287,39 @@ const AdminMockTests = () => {
                     value={form.durationMinutes}
                     onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Marks per Question</label>
+                  <input
+                    type="number"
+                    min="0.25"
+                    step="0.25"
+                    value={form.marksPerQuestion}
+                    onChange={(e) => setForm({ ...form, marksPerQuestion: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-400 mb-1">
+                    <input
+                      type="checkbox"
+                      checked={form.negativeMarkingEnabled}
+                      onChange={(e) => setForm({ ...form, negativeMarkingEnabled: e.target.checked })}
+                      className="accent-primary-500"
+                    />
+                    Enable negative marking
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.25"
+                    disabled={!form.negativeMarkingEnabled}
+                    value={form.negativeMarksPerQuestion}
+                    onChange={(e) => setForm({ ...form, negativeMarksPerQuestion: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500 disabled:opacity-50"
                   />
                 </div>
               </div>

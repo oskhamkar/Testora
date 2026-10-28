@@ -266,7 +266,8 @@ const exportQuestions = async (req, res) => {
 // @route   POST /api/questions/import-json
 // @access  Admin
 //
-// Expected body shape:
+// Accepts either a raw JSON request body, or a multipart .json file upload
+// (field name "file", max 2MB) with the same shape:
 // {
 //   "questions": [
 //     {
@@ -281,11 +282,30 @@ const exportQuestions = async (req, res) => {
 // }
 const importQuestionsJson = async (req, res) => {
   try {
-    const { questions } = req.body;
+    let payload = req.body;
+
+    if (req.file) {
+      try {
+        const raw = fs.readFileSync(req.file.path, 'utf8');
+        payload = JSON.parse(raw);
+      } catch (e) {
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ success: false, message: 'Uploaded file is not valid JSON' });
+      }
+      fs.unlinkSync(req.file.path);
+    }
+
+    const { questions } = payload || {};
     if (!Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Request body must contain a non-empty "questions" array',
+      });
+    }
+    if (questions.length > 500) {
+      return res.status(400).json({
+        success: false,
+        message: `Import limit exceeded: a single import supports at most 500 questions (received ${questions.length}). Split the file into smaller batches.`,
       });
     }
 

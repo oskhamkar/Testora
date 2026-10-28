@@ -24,7 +24,6 @@ const navConfig = {
   teacher: [
     { to: '/teacher/dashboard', icon: HiOutlineHome, label: 'Dashboard' },
     { to: '/teacher/quizzes', icon: HiOutlineClipboardList, label: 'Quiz Management' },
-    { to: '/teacher/questions', icon: HiOutlineQuestionMarkCircle, label: 'Question Bank' },
     { to: '/teacher/profile', icon: HiOutlineUser, label: 'Profile' },
   ],
   admin: [

@@ -27,7 +27,6 @@ import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import TeacherQuizzes from './pages/teacher/TeacherQuizzes';
 import CreateQuiz from './pages/teacher/CreateQuiz';
 import QuizResults from './pages/teacher/QuizResults';
-import TeacherQuestionBank from './pages/teacher/TeacherQuestionBank';
 import TeacherProfile from './pages/teacher/TeacherProfile';
 
 // Admin Pages
@@ -97,7 +96,6 @@ function App() {
                     <Route path="quizzes" element={<TeacherQuizzes />} />
                     <Route path="quizzes/create" element={<CreateQuiz />} />
                     <Route path="quizzes/:id/results" element={<QuizResults />} />
-                    <Route path="questions" element={<TeacherQuestionBank />} />
                     <Route path="profile" element={<TeacherProfile />} />
                     <Route path="*" element={<Navigate to="/teacher/dashboard" replace />} />
                   </Routes>

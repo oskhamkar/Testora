@@ -58,6 +58,7 @@ const AdminQuestions = () => {
   // JSON import modal
   const [showJsonModal, setShowJsonModal] = useState(false);
   const [jsonText, setJsonText] = useState('');
+  const [jsonFile, setJsonFile] = useState(null);
   const [jsonUploading, setJsonUploading] = useState(false);
   const [jsonErrors, setJsonErrors] = useState([]);
 
@@ -198,22 +199,50 @@ const AdminQuestions = () => {
     }
   };
 
+  const handleJsonFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) { setJsonFile(null); return; }
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      toast.error('Only .json files are allowed');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File is too large — maximum size is 2MB');
+      e.target.value = '';
+      return;
+    }
+    setJsonFile(file);
+  };
+
   const handleJsonUpload = async (e) => {
     e.preventDefault();
     setJsonErrors([]);
-    let parsed;
-    try {
-      parsed = JSON.parse(jsonText);
-    } catch (err) {
-      return toast.error('Invalid JSON: ' + err.message);
-    }
 
     try {
       setJsonUploading(true);
-      const res = await api.post('/questions/import-json', parsed);
+      let res;
+      if (jsonFile) {
+        const formData = new FormData();
+        formData.append('file', jsonFile);
+        res = await api.post('/questions/import-json', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      } else {
+        let parsed;
+        try {
+          parsed = JSON.parse(jsonText);
+        } catch (err) {
+          toast.error('Invalid JSON: ' + err.message);
+          setJsonUploading(false);
+          return;
+        }
+        res = await api.post('/questions/import-json', parsed);
+      }
       toast.success(res.data.message || 'Questions imported successfully');
       setShowJsonModal(false);
       setJsonText('');
+      setJsonFile(null);
       fetchQuestions();
     } catch (err) {
       const data = err.response?.data;
@@ -565,26 +594,44 @@ const AdminQuestions = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h2 className="text-lg font-bold text-white">Import Questions via JSON</h2>
-              <button onClick={() => { setShowJsonModal(false); setJsonErrors([]); }} className="text-slate-400 hover:text-white">
+              <button onClick={() => { setShowJsonModal(false); setJsonErrors([]); setJsonFile(null); }} className="text-slate-400 hover:text-white">
                 <HiOutlineXCircle className="h-6 w-6" />
               </button>
             </div>
 
             <form onSubmit={handleJsonUpload} className="space-y-4">
               <p className="text-xs text-slate-400 leading-relaxed">
-                Paste JSON matching this documented format. Category and topic names must already exist, and the topic must belong to the category. If <span className="text-amber-400 font-medium">any</span> question fails validation or duplicates an existing question, <span className="text-amber-400 font-medium">nothing</span> is imported.
+                Upload a <code className="text-primary-400">.json</code> file (max 2MB, up to 500 questions) or paste JSON matching this documented format. Category and topic names must already exist, and the topic must belong to the category. If <span className="text-amber-400 font-medium">any</span> question fails validation or duplicates an existing question, <span className="text-amber-400 font-medium">nothing</span> is imported.
               </p>
               <pre className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-400 overflow-x-auto">{SAMPLE_JSON}</pre>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">JSON Payload</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Upload .json file</label>
+                <div className="p-3 border-2 border-dashed border-slate-700 rounded-xl text-center bg-slate-800/40">
+                  <input
+                    type="file"
+                    accept=".json,application/json"
+                    onChange={handleJsonFileChange}
+                    className="hidden"
+                    id="jsonFileInput"
+                  />
+                  <label htmlFor="jsonFileInput" className="cursor-pointer text-sm font-medium text-slate-300 block">
+                    {jsonFile ? jsonFile.name : 'Click to select a .json file (optional — or paste below)'}
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Or paste JSON Payload {jsonFile && <span className="text-slate-600">(ignored while a file is selected)</span>}
+                </label>
                 <textarea
-                  required
                   rows="8"
+                  disabled={!!jsonFile}
                   value={jsonText}
                   onChange={(e) => setJsonText(e.target.value)}
                   placeholder={SAMPLE_JSON}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-primary-500"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-primary-500 disabled:opacity-50"
                 />
               </div>
 
@@ -601,14 +648,14 @@ const AdminQuestions = () => {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setShowJsonModal(false); setJsonErrors([]); }}
+                  onClick={() => { setShowJsonModal(false); setJsonErrors([]); setJsonFile(null); }}
                   className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-700"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={jsonUploading || !jsonText.trim()}
+                  disabled={jsonUploading || (!jsonFile && !jsonText.trim())}
                   className="px-5 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-500 disabled:opacity-50"
                 >
                   {jsonUploading ? 'Importing...' : 'Import JSON'}

@@ -73,16 +73,20 @@ const questionValidators = [
 
 const mockTestCreateValidators = [
   body('title').trim().notEmpty().withMessage('Title is required'),
-  body('questionIds').isArray({ min: 1 }).withMessage('At least one question is required'),
+  body('questionIds').isArray({ min: 1, max: 100 }).withMessage('Between 1 and 100 questions are required'),
   body('durationMinutes').isInt({ min: 1 }).withMessage('Duration must be a positive number of minutes'),
+  body('marksPerQuestion').optional().isFloat({ min: 0.25 }).withMessage('Marks per question must be a positive number'),
+  body('negativeMarksPerQuestion').optional().isFloat({ min: 0 }).withMessage('Negative marks must be zero or a positive number'),
 ];
 
 // Mock test updates are often partial (e.g. just toggling isPublished), so only
 // validate fields that were actually sent.
 const mockTestUpdateValidators = [
   body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
-  body('questionIds').optional().isArray({ min: 1 }).withMessage('At least one question is required'),
+  body('questionIds').optional().isArray({ min: 1, max: 100 }).withMessage('Between 1 and 100 questions are required'),
   body('durationMinutes').optional().isInt({ min: 1 }).withMessage('Duration must be a positive number of minutes'),
+  body('marksPerQuestion').optional().isFloat({ min: 0.25 }).withMessage('Marks per question must be a positive number'),
+  body('negativeMarksPerQuestion').optional().isFloat({ min: 0 }).withMessage('Negative marks must be zero or a positive number'),
   body('isPublished').optional().isBoolean().withMessage('isPublished must be true or false'),
 ];
 
@@ -110,7 +114,7 @@ const quizValidators = [
       }
       return true;
     }),
-  body('questions').isArray({ min: 1 }).withMessage('At least one question is required'),
+  body('questions').isArray({ min: 1, max: 50 }).withMessage('Between 1 and 50 questions are required'),
   body('questions.*.topicId')
     .notEmpty()
     .withMessage('Topic is required for every question')

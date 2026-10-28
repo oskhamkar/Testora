@@ -81,7 +81,7 @@ const QuizResults = () => {
                       <p className="text-xs text-slate-500">{student.email}</p>
                     </div>
                   </td>
-                  <td>{attempt ? `${attempt.score}/${quiz.questionIds?.length}` : '—'}</td>
+                  <td>{attempt ? `${attempt.score}/${attempt.maxMarks > 0 ? attempt.maxMarks : quiz.questionIds?.length}` : '—'}</td>
                   <td>
                     {attempt ? (
                       <span className={`font-bold ${attempt.accuracy >= 80 ? 'text-emerald-400' : attempt.accuracy >= 60 ? 'text-amber-400' : 'text-red-400'}`}>

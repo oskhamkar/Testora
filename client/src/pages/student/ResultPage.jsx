@@ -28,6 +28,7 @@ const ResultPage = () => {
   const secs = (timeTaken % 60).toString().padStart(2, '0');
   const acc = attempt.accuracy;
   const accColor = acc >= 80 ? 'text-emerald-400' : acc >= 60 ? 'text-amber-400' : 'text-red-400';
+  const maxMarks = attempt.maxMarks > 0 ? attempt.maxMarks : attempt.totalQuestions;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-slide-up">
@@ -42,8 +43,11 @@ const ResultPage = () => {
         <p className="text-slate-400 text-sm mb-4">{attempt.testTitle}</p>
 
         <div className={`text-6xl font-bold ${accColor} mb-2`}>{acc}%</div>
-        <p className="text-slate-400 text-sm mb-6">
+        <p className="text-slate-400 text-sm mb-1">
           {attempt.correctAnswers} / {attempt.totalQuestions} correct
+        </p>
+        <p className="text-slate-300 text-sm font-medium mb-6">
+          Marks: <span className="text-white font-bold">{attempt.score}</span> / {maxMarks}
         </p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">

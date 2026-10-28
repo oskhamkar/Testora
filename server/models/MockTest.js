@@ -6,6 +6,8 @@ const mockTestSchema = new mongoose.Schema(
     description: { type: String, trim: true },
     questionIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Question' }],
     durationMinutes: { type: Number, required: true, default: 30 },
+    marksPerQuestion: { type: Number, required: true, default: 1 },
+    negativeMarksPerQuestion: { type: Number, required: true, default: 0 },
     isPublished: { type: Boolean, default: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },

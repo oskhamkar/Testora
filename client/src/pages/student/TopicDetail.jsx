@@ -90,14 +90,13 @@ const TopicDetail = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [topicRes, conceptsRes, questionsRes] = await Promise.all([
+        const [topicRes, conceptsRes] = await Promise.all([
           api.get(`/topics/${id}`),
           api.get(`/concepts?topicId=${id}`),
-          api.get(`/questions?topicId=${id}&limit=1`),
         ]);
-        setTopic(topicRes.data.data);
+        setTopic(topicRes.data.data.topic);
         setConcepts(conceptsRes.data.data);
-        setQuestionCount(questionsRes.data.total || 0);
+        setQuestionCount(topicRes.data.data.questionCount || 0);
       } catch (e) {
         console.error(e);
       } finally {

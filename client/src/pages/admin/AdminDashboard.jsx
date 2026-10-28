@@ -65,7 +65,7 @@ const AdminDashboard = () => {
                       {a.userId ? `${a.userId.firstName} ${a.userId.lastName}` : 'N/A'}
                     </td>
                     <td className="text-slate-300">{a.testTitle}</td>
-                    <td>{a.score}/{a.totalQuestions}</td>
+                    <td>{a.score}/{a.maxMarks > 0 ? a.maxMarks : a.totalQuestions}</td>
                     <td>
                       <span className={`font-bold ${a.accuracy >= 80 ? 'text-emerald-400' : a.accuracy >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
                         {a.accuracy}%

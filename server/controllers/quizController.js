@@ -170,6 +170,7 @@ const getQuizResults = async (req, res) => {
         attempt: attempt
           ? {
               score: attempt.score,
+              maxMarks: attempt.maxMarks,
               totalQuestions: attempt.totalQuestions,
               accuracy: attempt.accuracy,
               correct: attempt.correctAnswers,
@@ -361,8 +362,14 @@ const submitQuiz = async (req, res) => {
     const totalAttempted = correct + wrong;
     const accuracy = totalAttempted > 0 ? Math.round((correct / totalAttempted) * 100) : 0;
 
+    const marksPerQuestion = quiz.marksPerQuestion || 1;
+    const negativeMarksPerQuestion = quiz.negativeMarksPerQuestion || 0;
+    const obtainedMarks = Math.round((correct * marksPerQuestion - wrong * negativeMarksPerQuestion) * 100) / 100;
+    const maxMarks = Math.round(quiz.questionIds.length * marksPerQuestion * 100) / 100;
+
     attempt.answers = processedAnswers;
-    attempt.score = correct;
+    attempt.score = obtainedMarks;
+    attempt.maxMarks = maxMarks;
     attempt.correctAnswers = correct;
     attempt.wrongAnswers = wrong;
     attempt.skippedAnswers = skipped;

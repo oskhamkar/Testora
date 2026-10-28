@@ -47,12 +47,14 @@ const getMockTestById = async (req, res) => {
 
 const createMockTest = async (req, res) => {
   try {
-    const { title, description, questionIds, durationMinutes } = req.body;
+    const { title, description, questionIds, durationMinutes, marksPerQuestion, negativeMarksPerQuestion } = req.body;
     const test = await MockTest.create({
       title,
       description,
       questionIds,
       durationMinutes,
+      marksPerQuestion: marksPerQuestion || 1,
+      negativeMarksPerQuestion: negativeMarksPerQuestion || 0,
       createdBy: req.user._id,
     });
     res.status(201).json({ success: true, message: 'Mock test created', data: test });
@@ -63,10 +65,12 @@ const createMockTest = async (req, res) => {
 
 const updateMockTest = async (req, res) => {
   try {
-    const { title, description, questionIds, durationMinutes, isPublished } = req.body;
+    const { title, description, questionIds, durationMinutes, marksPerQuestion, negativeMarksPerQuestion, isPublished } = req.body;
+    const update = { title, description, questionIds, durationMinutes, marksPerQuestion, negativeMarksPerQuestion, isPublished };
+    Object.keys(update).forEach((k) => update[k] === undefined && delete update[k]);
     const test = await MockTest.findByIdAndUpdate(
       req.params.id,
-      { title, description, questionIds, durationMinutes, isPublished },
+      update,
       { new: true }
     );
     if (!test) return res.status(404).json({ success: false, message: 'Mock test not found' });
@@ -221,8 +225,14 @@ const submitMockTest = async (req, res) => {
     const totalAttempted = correct + wrong;
     const accuracy = totalAttempted > 0 ? Math.round((correct / totalAttempted) * 100) : 0;
 
+    const marksPerQuestion = test.marksPerQuestion || 1;
+    const negativeMarksPerQuestion = test.negativeMarksPerQuestion || 0;
+    const obtainedMarks = Math.round((correct * marksPerQuestion - wrong * negativeMarksPerQuestion) * 100) / 100;
+    const maxMarks = Math.round(test.questionIds.length * marksPerQuestion * 100) / 100;
+
     attempt.answers = processedAnswers;
-    attempt.score = correct;
+    attempt.score = obtainedMarks;
+    attempt.maxMarks = maxMarks;
     attempt.correctAnswers = correct;
     attempt.wrongAnswers = wrong;
     attempt.skippedAnswers = skipped;

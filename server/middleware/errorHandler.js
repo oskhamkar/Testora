@@ -23,6 +23,11 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ success: false, message: messages.join(', ') });
   }
 
+  // Multer upload errors (file too large, wrong type, etc.)
+  if (err.name === 'MulterError' || /only \.(csv|json) files are allowed/i.test(err.message || '')) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+
   res.status(error.statusCode || 500).json({
     success: false,
     message: error.message || 'Internal server error',
