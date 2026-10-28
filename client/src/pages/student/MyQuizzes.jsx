@@ -61,7 +61,7 @@ const MyQuizzes = () => {
 
                 <div className="mt-auto">
                   {quiz.availabilityStatus === 'available' ? (
-                    <Link to={`/student/quiz/${quiz._id}`} className="btn-primary w-full justify-center py-2.5">
+                    <Link to={`/student/quizzes/${quiz._id}`} className="btn-primary w-full justify-center py-2.5">
                       Start Quiz
                     </Link>
                   ) : quiz.availabilityStatus === 'completed' ? (

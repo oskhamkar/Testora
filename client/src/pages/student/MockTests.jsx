@@ -89,7 +89,7 @@ const MockTests = () => {
                       </div>
                     </div>
                   ) : (
-                    <Link to={`/student/mock-test/${test._id}`} className="btn-primary w-full justify-center py-2.5">
+                    <Link to={`/student/mock-tests/${test._id}`} className="btn-primary w-full justify-center py-2.5">
                       Start Test
                     </Link>
                   )}
