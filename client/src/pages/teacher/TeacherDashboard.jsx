@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { HiOutlineClipboardList, HiOutlineUserGroup, HiOutlinePlusCircle, HiOutlineChartBar, HiOutlineQuestionMarkCircle } from 'react-icons/hi';
+import { HiOutlineClipboardList, HiOutlineUserGroup, HiOutlinePlusCircle, HiOutlineChartBar } from 'react-icons/hi';
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
@@ -33,8 +33,8 @@ const TeacherDashboard = () => {
           <Link to="/teacher/quizzes/create" className="btn-success text-sm py-2">
             <HiOutlinePlusCircle className="h-4 w-4" /> Create Quiz
           </Link>
-          <Link to="/teacher/questions" className="btn-outline text-sm py-2">
-            <HiOutlineQuestionMarkCircle className="h-4 w-4" /> Question Bank
+          <Link to="/teacher/quizzes" className="btn-outline text-sm py-2">
+            <HiOutlineClipboardList className="h-4 w-4" /> Manage Quizzes
           </Link>
         </div>
       </div>
