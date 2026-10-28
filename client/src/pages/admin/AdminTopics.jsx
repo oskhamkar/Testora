@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import { HiOutlinePlusCircle, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
 
 const Modal = ({ title, onClose, children }) => (
@@ -25,6 +26,7 @@ const AdminTopics = () => {
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', categoryId: '' });
   const [saving, setSaving] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const load = async () => {
     setLoading(true);
@@ -52,7 +54,7 @@ const AdminTopics = () => {
   };
 
   const del = async (id) => {
-    if (!confirm('Delete topic?')) return;
+    if (!(await confirm('This topic will be deactivated and hidden from quiz creation and practice.', 'Delete topic?'))) return;
     await api.delete(`/topics/${id}`);
     toast.success('Deleted');
     load();
@@ -115,6 +117,7 @@ const AdminTopics = () => {
           </div>
         </Modal>
       )}
+      {ConfirmDialog}
     </div>
   );
 };

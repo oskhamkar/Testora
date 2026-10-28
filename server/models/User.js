@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema(
     college: { type: String, trim: true },
     course: { type: String, trim: true },
     year: { type: String, trim: true },
+    specialization: { type: String, trim: true },
     profilePhoto: { type: String, default: '' },
     isActive: { type: Boolean, default: true },
   },

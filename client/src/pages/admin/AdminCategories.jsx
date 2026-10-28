@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import { HiOutlinePlusCircle, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
 
 const Modal = ({ title, onClose, children }) => (
@@ -23,6 +24,7 @@ const AdminCategories = () => {
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({ name: '', description: '' });
   const [saving, setSaving] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const load = async () => {
     const res = await api.get('/categories');
@@ -47,7 +49,7 @@ const AdminCategories = () => {
   };
 
   const del = async (id) => {
-    if (!confirm('Delete category?')) return;
+    if (!(await confirm('This category will be deactivated and hidden from teacher quiz creation. Continue?', 'Delete category?'))) return;
     await api.delete(`/categories/${id}`);
     toast.success('Deleted');
     load();
@@ -93,6 +95,7 @@ const AdminCategories = () => {
           </div>
         </Modal>
       )}
+      {ConfirmDialog}
     </div>
   );
 };

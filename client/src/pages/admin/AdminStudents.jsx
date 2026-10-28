@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
 import { HiOutlineSearch } from 'react-icons/hi';
 
@@ -10,6 +11,7 @@ const AdminStudents = () => {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const load = async (s = search) => {
     setLoading(true);
@@ -23,8 +25,12 @@ const AdminStudents = () => {
 
   useEffect(() => { load(); }, []);
 
-  const toggle = async (id) => {
-    await api.put(`/admin/students/${id}/toggle`);
+  const toggle = async (s) => {
+    const msg = s.isActive
+      ? 'This will immediately block the student from accessing the platform and end their active session.'
+      : "This will restore the student's access to the platform.";
+    if (!(await confirm(msg, `${s.isActive ? 'Deactivate' : 'Activate'} student?`))) return;
+    await api.put(`/admin/students/${s._id}/toggle`);
     toast.success('Student status updated');
     load();
   };
@@ -82,7 +88,7 @@ const AdminStudents = () => {
                   </td>
                   <td className="text-slate-500 text-xs">{new Date(s.createdAt).toLocaleDateString()}</td>
                   <td>
-                    <button onClick={() => toggle(s._id)} className={`text-xs font-medium ${s.isActive ? 'text-red-400 hover:text-red-300' : 'text-emerald-400 hover:text-emerald-300'}`}>
+                    <button onClick={() => toggle(s)} className={`text-xs font-medium ${s.isActive ? 'text-red-400 hover:text-red-300' : 'text-emerald-400 hover:text-emerald-300'}`}>
                       {s.isActive ? 'Deactivate' : 'Activate'}
                     </button>
                   </td>
@@ -92,6 +98,7 @@ const AdminStudents = () => {
           </table>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   );
 };

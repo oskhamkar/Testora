@@ -102,7 +102,7 @@ const getTeachers = async (req, res) => {
 // @access  Admin
 const createTeacher = async (req, res) => {
   try {
-    const { firstName, lastName, email, mobile, password } = req.body;
+    const { firstName, lastName, email, mobile, password, specialization } = req.body;
 
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ success: false, message: 'Email already exists' });
@@ -112,6 +112,7 @@ const createTeacher = async (req, res) => {
       lastName,
       email,
       mobile,
+      specialization,
       passwordHash: password,
       role: 'teacher',
     });
@@ -127,10 +128,10 @@ const createTeacher = async (req, res) => {
 // @access  Admin
 const updateTeacher = async (req, res) => {
   try {
-    const { firstName, lastName, email, mobile } = req.body;
+    const { firstName, lastName, email, mobile, specialization } = req.body;
     const teacher = await User.findOneAndUpdate(
       { _id: req.params.id, role: 'teacher' },
-      { firstName, lastName, email, mobile },
+      { firstName, lastName, email, mobile, specialization },
       { new: true }
     );
     if (!teacher) return res.status(404).json({ success: false, message: 'Teacher not found' });

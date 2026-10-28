@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
+const { validate, mockTestCreateValidators, mockTestUpdateValidators } = require('../middleware/validators');
 const {
   getMockTests,
   getMockTestById,
@@ -13,8 +14,8 @@ const {
 
 router.get('/', protect, getMockTests);
 router.get('/:id', protect, getMockTestById);
-router.post('/', protect, authorize('admin'), createMockTest);
-router.put('/:id', protect, authorize('admin'), updateMockTest);
+router.post('/', protect, authorize('admin'), mockTestCreateValidators, validate, createMockTest);
+router.put('/:id', protect, authorize('admin'), mockTestUpdateValidators, validate, updateMockTest);
 router.delete('/:id', protect, authorize('admin'), deleteMockTest);
 router.post('/:id/start', protect, authorize('student'), startMockTest);
 router.post('/:id/submit', protect, authorize('student'), submitMockTest);

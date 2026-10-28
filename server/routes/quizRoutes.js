@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
+const { validate, quizValidators } = require('../middleware/validators');
 const {
   getMyQuizzes,
   createQuiz,
@@ -20,7 +21,7 @@ router.post('/:id/submit', protect, authorize('student'), submitQuiz);
 
 // Teacher/Admin routes
 router.get('/', protect, authorize('teacher', 'admin'), getMyQuizzes);
-router.post('/', protect, authorize('teacher', 'admin'), createQuiz);
+router.post('/', protect, authorize('teacher', 'admin'), quizValidators, validate, createQuiz);
 router.get('/:id/results', protect, authorize('teacher', 'admin'), getQuizResults);
 router.put('/:id', protect, authorize('teacher', 'admin'), updateQuiz);
 router.delete('/:id', protect, authorize('teacher', 'admin'), deleteQuiz);

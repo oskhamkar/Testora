@@ -3,6 +3,8 @@ const QuizAssignment = require('../models/QuizAssignment');
 const TestAttempt = require('../models/TestAttempt');
 const Question = require('../models/Question');
 const User = require('../models/User');
+const Category = require('../models/Category');
+const Topic = require('../models/Topic');
 
 // Teacher: Get my quizzes
 const getMyQuizzes = async (req, res) => {
@@ -17,20 +19,60 @@ const getMyQuizzes = async (req, res) => {
   }
 };
 
-// Teacher: Create quiz
+// Teacher: Create quiz — generates new Question docs from the inline
+// question forms (category → quiz details → set questions workflow),
+// rather than picking from the existing question bank.
 const createQuiz = async (req, res) => {
   try {
-    const { title, description, questionIds, durationMinutes, startDate, endDate } = req.body;
+    const {
+      title, description, categoryId, durationMinutes,
+      marksPerQuestion, negativeMarksPerQuestion, startDate, endDate, questions,
+    } = req.body;
+
+    const category = await Category.findOne({ _id: categoryId, isActive: true });
+    if (!category) {
+      return res.status(400).json({ success: false, message: 'Selected category does not exist' });
+    }
+
+    const topicIds = [...new Set(questions.map((q) => q.topicId))];
+    const topics = await Topic.find({ _id: { $in: topicIds }, isActive: true });
+    if (topics.length !== topicIds.length) {
+      return res.status(400).json({ success: false, message: 'One or more selected topics do not exist' });
+    }
+    const invalidTopic = topics.find((t) => t.categoryId.toString() !== categoryId);
+    if (invalidTopic) {
+      return res.status(400).json({
+        success: false,
+        message: `Topic '${invalidTopic.name}' does not belong to the selected category`,
+      });
+    }
+
+    const questionDocs = questions.map((q) => ({
+      categoryId,
+      topicId: q.topicId,
+      question: q.question,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      explanation: q.explanation || '',
+      createdBy: req.user._id,
+    }));
+
+    const createdQuestions = await Question.insertMany(questionDocs);
+
     const quiz = await TeacherQuiz.create({
       title,
       description,
-      questionIds,
+      categoryId,
+      questionIds: createdQuestions.map((q) => q._id),
       durationMinutes,
+      marksPerQuestion: marksPerQuestion || 1,
+      negativeMarksPerQuestion: negativeMarksPerQuestion || 0,
       startDate,
       endDate,
       createdBy: req.user._id,
       status: 'draft',
     });
+
     res.status(201).json({ success: true, message: 'Quiz created', data: quiz });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

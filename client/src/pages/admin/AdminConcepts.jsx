@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import { HiOutlinePlusCircle, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
 
 const Modal = ({ title, onClose, children }) => (
@@ -27,6 +28,7 @@ const AdminConcepts = () => {
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({ topicId: '', title: '', content: '', formulas: '', examples: '', importantPoints: '' });
   const [saving, setSaving] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const load = async () => {
     setLoading(true);
@@ -85,7 +87,7 @@ const AdminConcepts = () => {
   };
 
   const del = async (id) => {
-    if (!confirm('Delete concept?')) return;
+    if (!(await confirm('This study note will be removed from the topic detail page for students.', 'Delete concept?'))) return;
     await api.delete(`/concepts/${id}`);
     toast.success('Deleted');
     load();
@@ -151,6 +153,7 @@ const AdminConcepts = () => {
           </div>
         </Modal>
       )}
+      {ConfirmDialog}
     </div>
   );
 };

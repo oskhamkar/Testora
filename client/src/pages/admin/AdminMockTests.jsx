@@ -3,21 +3,18 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import {
-  HiOutlinePlusCircle, HiOutlinePencil, HiOutlineTrash,
-  HiOutlineClock, HiOutlineClipboardList, HiOutlineCheckCircle,
-  HiOutlineXCircle, HiOutlineSearch
-} from 'react-icons/hi';
+  HiOutlinePlusCircle, HiOutlineTrash,
+  HiOutlineXCircle, HiOutlineEye, HiOutlineEyeSlash
+} from 'react-icons/hi2';
 
 const emptyMockTest = {
   title: '',
   description: '',
-  category: '',
-  duration: 60,
-  totalMarks: 100,
-  passingMarks: 40,
-  difficulty: 'medium',
-  questions: [],
+  categoryId: '',
+  durationMinutes: 30,
+  questionIds: [],
 };
 
 const AdminMockTests = () => {
@@ -25,6 +22,7 @@ const AdminMockTests = () => {
   const [categories, setCategories] = useState([]);
   const [availableQuestions, setAvailableQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -38,7 +36,7 @@ const AdminMockTests = () => {
       const [testRes, catRes, qRes] = await Promise.all([
         api.get('/mock-tests'),
         api.get('/categories'),
-        api.get('/questions'),
+        api.get('/questions', { params: { limit: 500 } }),
       ]);
       setMockTests(testRes.data.data || []);
       setCategories(catRes.data.data || []);
@@ -56,50 +54,53 @@ const AdminMockTests = () => {
 
   const openCreateModal = () => {
     setEditingId(null);
-    setForm({
-      ...emptyMockTest,
-      category: categories[0]?._id || '',
-    });
+    setForm({ ...emptyMockTest, categoryId: categories[0]?._id || '' });
+    setQuestionSearch('');
     setShowModal(true);
   };
 
   const openEditModal = (mt) => {
     setEditingId(mt._id);
+    const firstQuestion = availableQuestions.find(q => mt.questionIds?.some(id => (id._id || id) === q._id));
     setForm({
       title: mt.title || '',
       description: mt.description || '',
-      category: mt.category?._id || mt.category || '',
-      duration: mt.duration || 60,
-      totalMarks: mt.totalMarks || 100,
-      passingMarks: mt.passingMarks || 40,
-      difficulty: mt.difficulty || 'medium',
-      questions: mt.questions?.map(q => typeof q === 'object' ? q._id : q) || [],
+      categoryId: firstQuestion?.categoryId?._id || firstQuestion?.categoryId || '',
+      durationMinutes: mt.durationMinutes || 30,
+      questionIds: mt.questionIds?.map(q => typeof q === 'object' ? q._id : q) || [],
     });
+    setQuestionSearch('');
     setShowModal(true);
   };
 
   const toggleQuestionSelection = (qId) => {
-    const selected = form.questions.includes(qId);
+    const selected = form.questionIds.includes(qId);
     if (selected) {
-      setForm({ ...form, questions: form.questions.filter(id => id !== qId) });
+      setForm({ ...form, questionIds: form.questionIds.filter(id => id !== qId) });
     } else {
-      setForm({ ...form, questions: [...form.questions, qId] });
+      setForm({ ...form, questionIds: [...form.questionIds, qId] });
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) return toast.error('Title is required');
-    if (!form.category) return toast.error('Category is required');
-    if (form.questions.length === 0) return toast.error('Select at least 1 question');
+    if (form.questionIds.length === 0) return toast.error('Select at least 1 question');
+
+    const payload = {
+      title: form.title,
+      description: form.description,
+      questionIds: form.questionIds,
+      durationMinutes: Number(form.durationMinutes),
+    };
 
     try {
       setSubmitting(true);
       if (editingId) {
-        await api.put(`/mock-tests/${editingId}`, form);
+        await api.put(`/mock-tests/${editingId}`, payload);
         toast.success('Mock test updated successfully');
       } else {
-        await api.post('/mock-tests', form);
+        await api.post('/mock-tests', payload);
         toast.success('Mock test created successfully');
       }
       setShowModal(false);
@@ -112,7 +113,7 @@ const AdminMockTests = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this mock test?')) return;
+    if (!(await confirm('This mock test will be permanently removed. Students will no longer be able to attempt it.', 'Delete this mock test?'))) return;
     try {
       await api.delete(`/mock-tests/${id}`);
       toast.success('Mock test deleted successfully');
@@ -122,9 +123,26 @@ const AdminMockTests = () => {
     }
   };
 
+  const togglePublish = async (mt) => {
+    const verb = mt.isPublished ? 'unpublish' : 'publish';
+    if (!(await confirm(
+      mt.isPublished
+        ? 'Students will no longer see this mock test in their list.'
+        : 'This mock test will become visible and attemptable by all students.',
+      `${verb === 'publish' ? 'Publish' : 'Unpublish'} this mock test?`
+    ))) return;
+    try {
+      await api.put(`/mock-tests/${mt._id}`, { isPublished: !mt.isPublished });
+      toast.success(`Mock test ${mt.isPublished ? 'unpublished' : 'published'}`);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update mock test');
+    }
+  };
+
   const filteredQuestions = availableQuestions.filter(q => {
-    const textMatch = q.questionText.toLowerCase().includes(questionSearch.toLowerCase());
-    const catMatch = !form.category || (q.category?._id || q.category) === form.category;
+    const textMatch = q.question?.toLowerCase().includes(questionSearch.toLowerCase());
+    const catMatch = !form.categoryId || (q.categoryId?._id || q.categoryId) === form.categoryId;
     return textMatch && catMatch;
   });
 
@@ -155,15 +173,16 @@ const AdminMockTests = () => {
             <div key={test._id} className="p-6 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col justify-between space-y-4 hover:border-slate-700 transition-all">
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
-                  <span className="text-xs px-2.5 py-1 rounded-full bg-primary-950 text-primary-400 border border-primary-800/50 font-medium">
-                    {test.category?.name || 'Category'}
+                  <span className={test.isPublished ? 'badge-success' : 'badge-secondary'}>
+                    {test.isPublished ? 'Published' : 'Draft'}
                   </span>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => openEditModal(test)}
+                      onClick={() => togglePublish(test)}
                       className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                      title={test.isPublished ? 'Unpublish' : 'Publish'}
                     >
-                      <HiOutlinePencil className="h-4 w-4" />
+                      {test.isPublished ? <HiOutlineEyeSlash className="h-4 w-4" /> : <HiOutlineEye className="h-4 w-4" />}
                     </button>
                     <button
                       onClick={() => handleDelete(test._id)}
@@ -178,18 +197,14 @@ const AdminMockTests = () => {
                 <p className="text-xs text-slate-400 line-clamp-2">{test.description || 'No description provided.'}</p>
               </div>
 
-              <div className="pt-4 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-center text-xs">
                 <div className="bg-slate-800/40 p-2 rounded-xl border border-slate-800">
                   <span className="text-slate-400 block">Questions</span>
-                  <span className="text-white font-bold text-sm">{test.questions?.length || 0}</span>
+                  <span className="text-white font-bold text-sm">{test.questionIds?.length || 0}</span>
                 </div>
                 <div className="bg-slate-800/40 p-2 rounded-xl border border-slate-800">
                   <span className="text-slate-400 block">Duration</span>
-                  <span className="text-white font-bold text-sm">{test.duration}m</span>
-                </div>
-                <div className="bg-slate-800/40 p-2 rounded-xl border border-slate-800">
-                  <span className="text-slate-400 block">Marks</span>
-                  <span className="text-white font-bold text-sm">{test.totalMarks}</span>
+                  <span className="text-white font-bold text-sm">{test.durationMinutes}m</span>
                 </div>
               </div>
             </div>
@@ -236,28 +251,14 @@ const AdminMockTests = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Category</label>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">Filter Questions by Category</label>
                   <select
-                    required
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    value={form.categoryId}
+                    onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
                   >
-                    <option value="">Select Category</option>
+                    <option value="">All Categories</option>
                     {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Difficulty</label>
-                  <select
-                    value={form.difficulty}
-                    onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
-                  >
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
                   </select>
                 </div>
 
@@ -266,19 +267,8 @@ const AdminMockTests = () => {
                   <input
                     type="number"
                     min="5"
-                    value={form.duration}
-                    onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Total Marks</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={form.totalMarks}
-                    onChange={(e) => setForm({ ...form, totalMarks: Number(e.target.value) })}
+                    value={form.durationMinutes}
+                    onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
                   />
                 </div>
@@ -288,7 +278,7 @@ const AdminMockTests = () => {
               <div className="pt-3 border-t border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-slate-300">
-                    Select Questions ({form.questions.length} selected)
+                    Select Questions ({form.questionIds.length} selected)
                   </label>
                   <div className="relative w-48">
                     <input
@@ -306,7 +296,7 @@ const AdminMockTests = () => {
                     <p className="text-xs text-slate-500 text-center py-4">No matching questions found.</p>
                   ) : (
                     filteredQuestions.map((q) => {
-                      const selected = form.questions.includes(q._id);
+                      const selected = form.questionIds.includes(q._id);
                       return (
                         <div
                           key={q._id}
@@ -317,8 +307,8 @@ const AdminMockTests = () => {
                               : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                           }`}
                         >
-                          <span className="truncate flex-1 pr-3">{q.questionText}</span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${
+                          <span className="truncate flex-1 pr-3">{q.question}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize flex-shrink-0 ${
                             selected ? 'bg-primary-600 text-white' : 'bg-slate-800 text-slate-400'
                           }`}>
                             {selected ? 'Selected' : '+ Add'}
@@ -350,6 +340,7 @@ const AdminMockTests = () => {
           </div>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   );
 };

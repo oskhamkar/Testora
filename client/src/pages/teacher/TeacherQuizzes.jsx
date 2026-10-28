@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import { HiOutlinePlusCircle, HiOutlineEye, HiOutlineTrash } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 const TeacherQuizzes = () => {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const load = async () => {
     const res = await api.get('/quizzes');
@@ -19,7 +21,7 @@ const TeacherQuizzes = () => {
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this quiz?')) return;
+    if (!(await confirm('Students who were assigned this quiz will no longer be able to take it.', 'Delete this quiz?'))) return;
     await api.delete(`/quizzes/${id}`);
     toast.success('Quiz deleted');
     load();
@@ -80,6 +82,7 @@ const TeacherQuizzes = () => {
           </table>
         </div>
       )}
+      {ConfirmDialog}
     </div>
   );
 };

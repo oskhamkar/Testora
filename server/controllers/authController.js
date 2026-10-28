@@ -76,11 +76,11 @@ const getMe = async (req, res) => {
 // @access  Private
 const updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, mobile, college, course, year, profilePhoto } = req.body;
+    const { firstName, lastName, mobile, college, course, year, profilePhoto, specialization } = req.body;
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { firstName, lastName, mobile, college, course, year, profilePhoto },
+      { firstName, lastName, mobile, college, course, year, profilePhoto, specialization },
       { new: true, runValidators: true }
     );
 

@@ -3,46 +3,63 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import {
   HiOutlinePlusCircle, HiOutlinePencil, HiOutlineTrash,
-  HiOutlineUpload, HiOutlineSearch, HiOutlineFilter,
-  HiOutlineCheckCircle, HiOutlineXCircle
-} from 'react-icons/hi';
+  HiOutlineArrowUpTray, HiOutlineArrowDownTray, HiOutlineMagnifyingGlass,
+  HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineCodeBracket
+} from 'react-icons/hi2';
 
 const emptyQuestion = {
-  questionText: '',
+  question: '',
   options: ['', '', '', ''],
-  correctOption: 0,
+  correctIndex: 0,
   explanation: '',
-  category: '',
-  topic: '',
-  difficulty: 'medium',
-  marks: 1,
-  negativeMarks: 0,
+  categoryId: '',
+  topicId: '',
 };
+
+const SAMPLE_JSON = `{
+  "questions": [
+    {
+      "category": "Quantitative Aptitude",
+      "topic": "Percentages",
+      "question": "What is 20% of 150?",
+      "options": { "A": "20", "B": "30", "C": "40", "D": "50" },
+      "correctAnswer": "B",
+      "explanation": "20% of 150 = 0.2 x 150 = 30"
+    }
+  ]
+}`;
 
 const AdminQuestions = () => {
   const [questions, setQuestions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   // Filters
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('');
-  const [selectedDifficulty, setSelectedDifficulty] = useState('');
 
-  // Modals
+  // Create/Edit modal
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyQuestion);
   const [submitting, setSubmitting] = useState(false);
 
-  // CSV Modal
+  // CSV import modal
   const [showCsvModal, setShowCsvModal] = useState(false);
   const [csvFile, setCsvFile] = useState(null);
   const [csvUploading, setCsvUploading] = useState(false);
+
+  // JSON import modal
+  const [showJsonModal, setShowJsonModal] = useState(false);
+  const [jsonText, setJsonText] = useState('');
+  const [jsonUploading, setJsonUploading] = useState(false);
+  const [jsonErrors, setJsonErrors] = useState([]);
 
   const fetchInitialData = async () => {
     try {
@@ -63,9 +80,8 @@ const AdminQuestions = () => {
   const fetchQuestions = async () => {
     try {
       const params = {};
-      if (selectedCategory) params.category = selectedCategory;
-      if (selectedTopic) params.topic = selectedTopic;
-      if (selectedDifficulty) params.difficulty = selectedDifficulty;
+      if (selectedCategory) params.categoryId = selectedCategory;
+      if (selectedTopic) params.topicId = selectedTopic;
       if (search) params.search = search;
 
       const res = await api.get('/questions', { params });
@@ -81,30 +97,28 @@ const AdminQuestions = () => {
 
   useEffect(() => {
     fetchQuestions();
-  }, [selectedCategory, selectedTopic, selectedDifficulty, search]);
+  }, [selectedCategory, selectedTopic, search]);
 
   const openCreateModal = () => {
     setEditingId(null);
     setForm({
       ...emptyQuestion,
-      category: categories[0]?._id || '',
-      topic: topics[0]?._id || '',
+      categoryId: selectedCategory || categories[0]?._id || '',
+      topicId: '',
     });
     setShowModal(true);
   };
 
   const openEditModal = (q) => {
     setEditingId(q._id);
+    const letters = ['A', 'B', 'C', 'D'];
     setForm({
-      questionText: q.questionText || '',
-      options: q.options?.map(o => typeof o === 'string' ? o : o.text) || ['', '', '', ''],
-      correctOption: q.correctOption ?? 0,
+      question: q.question || '',
+      options: letters.map((l) => q.options?.find((o) => o.label === l)?.text || ''),
+      correctIndex: letters.indexOf(q.correctAnswer),
       explanation: q.explanation || '',
-      category: q.category?._id || q.category || '',
-      topic: q.topic?._id || q.topic || '',
-      difficulty: q.difficulty || 'medium',
-      marks: q.marks || 1,
-      negativeMarks: q.negativeMarks || 0,
+      categoryId: q.categoryId?._id || q.categoryId || '',
+      topicId: q.topicId?._id || q.topicId || '',
     });
     setShowModal(true);
   };
@@ -117,18 +131,28 @@ const AdminQuestions = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.questionText.trim()) return toast.error('Question text is required');
+    if (!form.question.trim()) return toast.error('Question text is required');
     if (form.options.some(opt => !opt.trim())) return toast.error('All 4 options are required');
-    if (!form.category) return toast.error('Category is required');
-    if (!form.topic) return toast.error('Topic is required');
+    if (!form.categoryId) return toast.error('Category is required');
+    if (!form.topicId) return toast.error('Topic is required');
+
+    const letters = ['A', 'B', 'C', 'D'];
+    const payload = {
+      categoryId: form.categoryId,
+      topicId: form.topicId,
+      question: form.question,
+      options: letters.map((l, i) => ({ label: l, text: form.options[i] })),
+      correctAnswer: letters[form.correctIndex],
+      explanation: form.explanation,
+    };
 
     try {
       setSubmitting(true);
       if (editingId) {
-        await api.put(`/questions/${editingId}`, form);
+        await api.put(`/questions/${editingId}`, payload);
         toast.success('Question updated successfully');
       } else {
-        await api.post('/questions', form);
+        await api.post('/questions', payload);
         toast.success('Question created successfully');
       }
       setShowModal(false);
@@ -141,7 +165,7 @@ const AdminQuestions = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this question?')) return;
+    if (!(await confirm('This question will be deactivated and removed from quizzes, mock tests and practice lists.', 'Delete this question?'))) return;
     try {
       await api.delete(`/questions/${id}`);
       toast.success('Question deleted successfully');
@@ -174,8 +198,61 @@ const AdminQuestions = () => {
     }
   };
 
+  const handleJsonUpload = async (e) => {
+    e.preventDefault();
+    setJsonErrors([]);
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch (err) {
+      return toast.error('Invalid JSON: ' + err.message);
+    }
+
+    try {
+      setJsonUploading(true);
+      const res = await api.post('/questions/import-json', parsed);
+      toast.success(res.data.message || 'Questions imported successfully');
+      setShowJsonModal(false);
+      setJsonText('');
+      fetchQuestions();
+    } catch (err) {
+      const data = err.response?.data;
+      toast.error(data?.message || 'Failed to import JSON');
+      setJsonErrors(data?.data?.errors || []);
+    } finally {
+      setJsonUploading(false);
+    }
+  };
+
+  const handleExport = () => {
+    const params = new URLSearchParams();
+    if (selectedCategory) params.set('categoryId', selectedCategory);
+    if (selectedTopic) params.set('topicId', selectedTopic);
+    if (search) params.set('search', search);
+    const token = localStorage.getItem('testora_token');
+    // Use fetch directly to receive the file as a blob with auth header, then trigger download.
+    fetch(`/api/questions/export?${params}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Export failed');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `questions-export-${Date.now()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(() => toast.error('Failed to export questions'));
+  };
+
   const filteredTopics = selectedCategory
-    ? topics.filter(t => (t.category?._id || t.category) === selectedCategory)
+    ? topics.filter(t => (t.categoryId?._id || t.categoryId) === selectedCategory)
+    : topics;
+
+  const formTopics = form.categoryId
+    ? topics.filter(t => (t.categoryId?._id || t.categoryId) === form.categoryId)
     : topics;
 
   if (loading) return <LoadingSpinner fullScreen />;
@@ -186,14 +263,26 @@ const AdminQuestions = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Question Bank Management</h1>
-          <p className="text-slate-400 text-sm">Create, edit, delete and import CSV questions</p>
+          <p className="text-slate-400 text-sm">Create, edit, delete, import and export questions</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-medium transition-all text-sm border border-slate-700"
+          >
+            <HiOutlineArrowDownTray className="h-4 w-4" /> Export CSV
+          </button>
+          <button
+            onClick={() => setShowJsonModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-medium transition-all text-sm border border-slate-700"
+          >
+            <HiOutlineCodeBracket className="h-4 w-4" /> Import JSON
+          </button>
           <button
             onClick={() => setShowCsvModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-medium transition-all text-sm border border-slate-700"
           >
-            <HiOutlineUpload className="h-4 w-4" /> Import CSV
+            <HiOutlineArrowUpTray className="h-4 w-4" /> Import CSV
           </button>
           <button
             onClick={openCreateModal}
@@ -205,9 +294,9 @@ const AdminQuestions = () => {
       </div>
 
       {/* Filter Bar */}
-      <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="relative">
-          <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
+          <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-5 w-5" />
           <input
             type="text"
             placeholder="Search questions..."
@@ -234,17 +323,6 @@ const AdminQuestions = () => {
           <option value="">All Topics</option>
           {filteredTopics.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
         </select>
-
-        <select
-          value={selectedDifficulty}
-          onChange={(e) => setSelectedDifficulty(e.target.value)}
-          className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
-        >
-          <option value="">All Difficulties</option>
-          <option value="easy">Easy</option>
-          <option value="medium">Medium</option>
-          <option value="hard">Hard</option>
-        </select>
       </div>
 
       {/* Questions list */}
@@ -260,22 +338,14 @@ const AdminQuestions = () => {
                     {idx + 1}
                   </span>
                   <div>
-                    <h3 className="text-white font-medium text-base">{q.questionText}</h3>
+                    <h3 className="text-white font-medium text-base">{q.question}</h3>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                       <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                        {q.category?.name || 'Category'}
+                        {q.categoryId?.name || 'Category'}
                       </span>
                       <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                        {q.topic?.name || 'Topic'}
+                        {q.topicId?.name || 'Topic'}
                       </span>
-                      <span className={`text-xs px-2.5 py-0.5 rounded-full capitalize ${
-                        q.difficulty === 'easy' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
-                        q.difficulty === 'hard' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
-                        'bg-amber-950 text-amber-400 border border-amber-800'
-                      }`}>
-                        {q.difficulty}
-                      </span>
-                      <span className="text-xs text-slate-500">Marks: +{q.marks} / -{q.negativeMarks}</span>
                     </div>
                   </div>
                 </div>
@@ -297,20 +367,19 @@ const AdminQuestions = () => {
 
               {/* Options */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
-                {q.options?.map((opt, oIdx) => {
-                  const optText = typeof opt === 'string' ? opt : opt.text;
-                  const isCorrect = oIdx === q.correctOption;
+                {q.options?.map((opt) => {
+                  const isCorrect = opt.label === q.correctAnswer;
                   return (
                     <div
-                      key={oIdx}
+                      key={opt.label}
                       className={`px-3 py-2 rounded-xl text-xs flex items-center gap-2 border ${
                         isCorrect
                           ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/60'
                           : 'bg-slate-800/40 text-slate-400 border-slate-800'
                       }`}
                     >
-                      <span className="font-semibold uppercase">{String.fromCharCode(65 + oIdx)}.</span>
-                      <span className="flex-1 truncate">{optText}</span>
+                      <span className="font-semibold uppercase">{opt.label}.</span>
+                      <span className="flex-1 truncate">{opt.text}</span>
                       {isCorrect && <HiOutlineCheckCircle className="h-4 w-4 text-emerald-400 flex-shrink-0" />}
                     </div>
                   );
@@ -346,8 +415,8 @@ const AdminQuestions = () => {
                 <textarea
                   required
                   rows="3"
-                  value={form.questionText}
-                  onChange={(e) => setForm({ ...form, questionText: e.target.value })}
+                  value={form.question}
+                  onChange={(e) => setForm({ ...form, question: e.target.value })}
                   placeholder="Enter the question prompt..."
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
                 />
@@ -358,8 +427,8 @@ const AdminQuestions = () => {
                   <label className="block text-xs font-medium text-slate-400 mb-1">Category</label>
                   <select
                     required
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    value={form.categoryId}
+                    onChange={(e) => setForm({ ...form, categoryId: e.target.value, topicId: '' })}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
                   >
                     <option value="">Select Category</option>
@@ -370,14 +439,12 @@ const AdminQuestions = () => {
                   <label className="block text-xs font-medium text-slate-400 mb-1">Topic</label>
                   <select
                     required
-                    value={form.topic}
-                    onChange={(e) => setForm({ ...form, topic: e.target.value })}
+                    value={form.topicId}
+                    onChange={(e) => setForm({ ...form, topicId: e.target.value })}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
                   >
                     <option value="">Select Topic</option>
-                    {topics
-                      .filter(t => !form.category || (t.category?._id || t.category) === form.category)
-                      .map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                    {formTopics.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
                   </select>
                 </div>
               </div>
@@ -389,9 +456,9 @@ const AdminQuestions = () => {
                   <div key={idx} className="flex items-center gap-3">
                     <input
                       type="radio"
-                      name="correctOption"
-                      checked={form.correctOption === idx}
-                      onChange={() => setForm({ ...form, correctOption: idx })}
+                      name="correctIndex"
+                      checked={form.correctIndex === idx}
+                      onChange={() => setForm({ ...form, correctIndex: idx })}
                       className="accent-primary-500 h-4 w-4"
                     />
                     <span className="text-xs font-bold text-slate-400 w-4">{String.fromCharCode(65 + idx)}</span>
@@ -405,42 +472,6 @@ const AdminQuestions = () => {
                     />
                   </div>
                 ))}
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Difficulty</label>
-                  <select
-                    value={form.difficulty}
-                    onChange={(e) => setForm({ ...form, difficulty: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
-                  >
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Marks (+)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={form.marks}
-                    onChange={(e) => setForm({ ...form, marks: Number(e.target.value) })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Negative Marks (-)</label>
-                  <input
-                    type="number"
-                    step="0.25"
-                    min="0"
-                    value={form.negativeMarks}
-                    onChange={(e) => setForm({ ...form, negativeMarks: Number(e.target.value) })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-primary-500"
-                  />
-                </div>
               </div>
 
               <div>
@@ -488,7 +519,7 @@ const AdminQuestions = () => {
 
             <form onSubmit={handleCsvUpload} className="space-y-4">
               <p className="text-xs text-slate-400 leading-relaxed">
-                Upload a CSV file containing columns: <code className="text-primary-400">questionText, optionA, optionB, optionC, optionD, correctOption (0-3), category, topic, difficulty, explanation</code>.
+                Upload a CSV file with columns: <code className="text-primary-400">question, optionA, optionB, optionC, optionD, correctAnswer (A/B/C/D), category, topic, explanation</code>. Rows with errors are skipped; valid rows are still imported.
               </p>
 
               <div className="p-4 border-2 border-dashed border-slate-700 rounded-xl text-center bg-slate-800/40">
@@ -500,7 +531,7 @@ const AdminQuestions = () => {
                   id="csvFileInput"
                 />
                 <label htmlFor="csvFileInput" className="cursor-pointer space-y-2 block">
-                  <HiOutlineUpload className="h-8 w-8 text-primary-400 mx-auto" />
+                  <HiOutlineArrowUpTray className="h-8 w-8 text-primary-400 mx-auto" />
                   <span className="text-sm font-medium text-slate-300 block">
                     {csvFile ? csvFile.name : 'Click to select CSV file'}
                   </span>
@@ -527,6 +558,67 @@ const AdminQuestions = () => {
           </div>
         </div>
       )}
+
+      {/* JSON Import Modal */}
+      {showJsonModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h2 className="text-lg font-bold text-white">Import Questions via JSON</h2>
+              <button onClick={() => { setShowJsonModal(false); setJsonErrors([]); }} className="text-slate-400 hover:text-white">
+                <HiOutlineXCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleJsonUpload} className="space-y-4">
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Paste JSON matching this documented format. Category and topic names must already exist, and the topic must belong to the category. If <span className="text-amber-400 font-medium">any</span> question fails validation or duplicates an existing question, <span className="text-amber-400 font-medium">nothing</span> is imported.
+              </p>
+              <pre className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-400 overflow-x-auto">{SAMPLE_JSON}</pre>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">JSON Payload</label>
+                <textarea
+                  required
+                  rows="8"
+                  value={jsonText}
+                  onChange={(e) => setJsonText(e.target.value)}
+                  placeholder={SAMPLE_JSON}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-primary-500"
+                />
+              </div>
+
+              {jsonErrors.length > 0 && (
+                <div className="bg-red-950/40 border border-red-900/60 rounded-xl p-3 space-y-1 max-h-40 overflow-y-auto">
+                  {jsonErrors.map((e, i) => (
+                    <p key={i} className="text-xs text-red-300">
+                      {e.index ? `Item ${e.index}: ` : ''}{e.error}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowJsonModal(false); setJsonErrors([]); }}
+                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={jsonUploading || !jsonText.trim()}
+                  className="px-5 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-500 disabled:opacity-50"
+                >
+                  {jsonUploading ? 'Importing...' : 'Import JSON'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {ConfirmDialog}
     </div>
   );
 };

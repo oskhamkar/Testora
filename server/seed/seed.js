@@ -52,6 +52,7 @@ const seed = async () => {
     mobile: '9000000002',
     passwordHash: 'Teacher@123',
     role: 'teacher',
+    specialization: 'Quantitative Aptitude',
     isActive: true,
   });
 
@@ -658,9 +659,12 @@ const seed = async () => {
 
   const quiz = await TeacherQuiz.create({
     title: 'Aptitude Assessment — Batch A',
-    description: 'Weekly aptitude quiz covering quantitative and logical reasoning topics.',
-    questionIds: [...pickN(quantQs, 8), ...pickN(logicQs, 7)],
+    description: 'Weekly aptitude quiz covering quantitative aptitude topics.',
+    categoryId: catQuant._id,
+    questionIds: pickN(quantQs, 8),
     durationMinutes: 20,
+    marksPerQuestion: 1,
+    negativeMarksPerQuestion: 0.25,
     startDate,
     endDate,
     createdBy: teacher._id,

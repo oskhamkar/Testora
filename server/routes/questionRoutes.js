@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
+const { validate, questionValidators } = require('../middleware/validators');
 const multer = require('multer');
 const path = require('path');
 const {
@@ -12,6 +13,8 @@ const {
   getPracticeQuestions,
   submitPracticeAnswer,
   importQuestions,
+  exportQuestions,
+  importQuestionsJson,
 } = require('../controllers/questionController');
 
 const storage = multer.diskStorage({
@@ -31,11 +34,17 @@ router.post('/practice/submit', protect, authorize('student'), submitPracticeAns
 // CSV import (admin)
 router.post('/import', protect, authorize('admin'), upload.single('file'), importQuestions);
 
+// JSON import (admin) — documented format, all-or-nothing, duplicate-checked
+router.post('/import-json', protect, authorize('admin'), importQuestionsJson);
+
+// CSV export (admin) — full or filtered by categoryId/topicId/search
+router.get('/export', protect, authorize('admin'), exportQuestions);
+
 // CRUD — admin/teacher
 router.get('/', protect, getQuestions);
 router.get('/:id', protect, getQuestionById);
-router.post('/', protect, authorize('admin', 'teacher'), createQuestion);
-router.put('/:id', protect, authorize('admin', 'teacher'), updateQuestion);
+router.post('/', protect, authorize('admin', 'teacher'), questionValidators, validate, createQuestion);
+router.put('/:id', protect, authorize('admin', 'teacher'), questionValidators, validate, updateQuestion);
 router.delete('/:id', protect, authorize('admin'), deleteQuestion);
 
 module.exports = router;

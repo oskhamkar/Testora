@@ -20,8 +20,8 @@ const AdminDashboard = () => {
   const stats = [
     { label: 'Total Students', value: data?.studentCount, icon: HiOutlineUsers, color: 'text-primary-400', bg: 'bg-primary-900/30 border-primary-800/40' },
     { label: 'Total Teachers', value: data?.teacherCount, icon: HiOutlineAcademicCap, color: 'text-emerald-400', bg: 'bg-emerald-900/30 border-emerald-800/40' },
+    { label: 'Total Topics', value: data?.topicCount, icon: HiOutlineTag, color: 'text-sky-400', bg: 'bg-sky-900/30 border-sky-800/40' },
     { label: 'Total Questions', value: data?.questionCount, icon: HiOutlineQuestionMarkCircle, color: 'text-amber-400', bg: 'bg-amber-900/30 border-amber-800/40' },
-    { label: 'Topics', value: data?.topicCount, icon: HiOutlineTag, color: 'text-sky-400', bg: 'bg-sky-900/30 border-sky-800/40' },
     { label: 'Mock Tests', value: data?.mockTestCount, icon: HiOutlineClipboardList, color: 'text-violet-400', bg: 'bg-violet-900/30 border-violet-800/40' },
     { label: 'Test Attempts', value: data?.attemptCount, icon: HiOutlineChartBar, color: 'text-rose-400', bg: 'bg-rose-900/30 border-rose-800/40' },
   ];

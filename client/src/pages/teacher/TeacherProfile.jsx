@@ -10,7 +10,7 @@ const TeacherProfile = () => {
   const [profileForm, setProfileForm] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
-    department: user?.department || '',
+    specialization: user?.specialization || '',
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -76,7 +76,7 @@ const TeacherProfile = () => {
         <div>
           <h2 className="text-xl font-bold text-white">{user?.firstName} {user?.lastName}</h2>
           <p className="text-emerald-400 text-xs font-semibold uppercase tracking-wider mt-0.5">Faculty / Instructor</p>
-          <p className="text-slate-400 text-xs mt-1">{user?.email} {user?.department ? `• ${user.department}` : ''}</p>
+          <p className="text-slate-400 text-xs mt-1">{user?.email} {user?.specialization ? `• ${user.specialization}` : ''}</p>
         </div>
       </div>
 
@@ -112,12 +112,12 @@ const TeacherProfile = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Department</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Specialization</label>
               <input
                 type="text"
-                placeholder="e.g. Computer Engineering"
-                value={profileForm.department}
-                onChange={(e) => setProfileForm({ ...profileForm, department: e.target.value })}
+                placeholder="e.g. Quantitative Aptitude"
+                value={profileForm.specialization}
+                onChange={(e) => setProfileForm({ ...profileForm, specialization: e.target.value })}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
               />
             </div>

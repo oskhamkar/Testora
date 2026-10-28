@@ -3,6 +3,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
+import { useConfirm } from '../../components/common/ConfirmDialog';
 import { HiOutlinePlusCircle, HiOutlinePencil, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
 
 const Modal = ({ title, onClose, children }) => (
@@ -22,9 +23,10 @@ const AdminTeachers = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editTeacher, setEditTeacher] = useState(null);
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', mobile: '', password: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', mobile: '', specialization: '', password: '' });
   const [saving, setSaving] = useState(false);
   const [showPw, setShowPw] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const load = async () => {
     const res = await api.get('/admin/teachers');
@@ -36,13 +38,13 @@ const AdminTeachers = () => {
 
   const openCreate = () => {
     setEditTeacher(null);
-    setForm({ firstName: '', lastName: '', email: '', mobile: '', password: '' });
+    setForm({ firstName: '', lastName: '', email: '', mobile: '', specialization: '', password: '' });
     setShowModal(true);
   };
 
   const openEdit = (t) => {
     setEditTeacher(t);
-    setForm({ firstName: t.firstName, lastName: t.lastName, email: t.email, mobile: t.mobile || '', password: '' });
+    setForm({ firstName: t.firstName, lastName: t.lastName, email: t.email, mobile: t.mobile || '', specialization: t.specialization || '', password: '' });
     setShowModal(true);
   };
 
@@ -65,8 +67,10 @@ const AdminTeachers = () => {
     } finally { setSaving(false); }
   };
 
-  const toggle = async (id) => {
-    await api.put(`/admin/teachers/${id}/toggle`);
+  const toggle = async (t) => {
+    const action = t.isActive ? 'Deactivating' : 'Activating';
+    if (!(await confirm(`${action} will immediately ${t.isActive ? 'block this teacher from accessing the platform' : 'restore this teacher\'s access'}.`, `${t.isActive ? 'Deactivate' : 'Activate'} teacher?`))) return;
+    await api.put(`/admin/teachers/${t._id}/toggle`);
     toast.success('Status updated');
     load();
   };
@@ -91,7 +95,7 @@ const AdminTeachers = () => {
         <div className="table-wrapper">
           <table className="data-table">
             <thead>
-              <tr><th>Teacher</th><th>Mobile</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+              <tr><th>Teacher</th><th>Mobile</th><th>Specialization</th><th>Status</th><th>Action</th></tr>
             </thead>
             <tbody>
               {teachers.map(t => (
@@ -108,14 +112,14 @@ const AdminTeachers = () => {
                     </div>
                   </td>
                   <td className="text-slate-400">{t.mobile || '—'}</td>
+                  <td className="text-slate-400">{t.specialization || '—'}</td>
                   <td><span className={t.isActive ? 'badge-success' : 'badge-danger'}>{t.isActive ? 'Active' : 'Inactive'}</span></td>
-                  <td className="text-slate-500 text-xs">{new Date(t.createdAt).toLocaleDateString()}</td>
                   <td>
                     <div className="flex items-center gap-3">
                       <button onClick={() => openEdit(t)} className="text-primary-400 hover:text-primary-300">
                         <HiOutlinePencil className="h-4 w-4" />
                       </button>
-                      <button onClick={() => toggle(t._id)} className={`text-xs font-medium ${t.isActive ? 'text-red-400 hover:text-red-300' : 'text-emerald-400 hover:text-emerald-300'}`}>
+                      <button onClick={() => toggle(t)} className={`text-xs font-medium ${t.isActive ? 'text-red-400 hover:text-red-300' : 'text-emerald-400 hover:text-emerald-300'}`}>
                         {t.isActive ? 'Deactivate' : 'Activate'}
                       </button>
                     </div>
@@ -136,6 +140,7 @@ const AdminTeachers = () => {
             </div>
             <div><label className="label">Email *</label><input type="email" className="input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
             <div><label className="label">Mobile</label><input className="input" value={form.mobile} onChange={e => setForm(f => ({ ...f, mobile: e.target.value }))} /></div>
+            <div><label className="label">Specialization</label><input className="input" placeholder="e.g. Quantitative Aptitude" value={form.specialization} onChange={e => setForm(f => ({ ...f, specialization: e.target.value }))} /></div>
             {!editTeacher && (
               <div>
                 <label className="label">Password *</label>
@@ -154,6 +159,7 @@ const AdminTeachers = () => {
           </div>
         </Modal>
       )}
+      {ConfirmDialog}
     </div>
   );
 };
